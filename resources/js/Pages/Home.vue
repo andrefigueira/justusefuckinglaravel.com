@@ -1,10 +1,19 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, markRaw } from 'vue';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-markup';
 import 'prismjs/components/prism-markup-templating';
 import 'prismjs/components/prism-php';
 import 'prismjs/themes/prism-tomorrow.css';
+
+import {
+    BoltIcon,
+    SparklesIcon,
+    CommandLineIcon,
+    WrenchScrewdriverIcon,
+    BookOpenIcon,
+    UserGroupIcon,
+} from '@heroicons/vue/24/outline';
 
 const highlightCode = (code) => {
     return Prism.highlight(code, Prism.languages.php, 'php');
@@ -13,27 +22,33 @@ const highlightCode = (code) => {
 const reasons = [
     {
         title: "Batteries Included",
-        desc: "Auth, queues, caching, mail, notifications, broadcasting... it's all there. Stop gluing random packages together."
+        desc: "Auth, queues, caching, mail, notifications, broadcasting... it's all there. Stop gluing random packages together.",
+        icon: markRaw(BoltIcon)
     },
     {
         title: "Eloquent is Beautiful",
-        desc: "An ORM that actually makes sense. Write expressive queries that read like English, not SQL nightmares."
+        desc: "An ORM that actually makes sense. Write expressive queries that read like English, not SQL nightmares.",
+        icon: markRaw(SparklesIcon)
     },
     {
         title: "Artisan Commands",
-        desc: "Generate anything with a single command. Spend time building features, not boilerplate."
+        desc: "Generate anything with a single command. Spend time building features, not boilerplate.",
+        icon: markRaw(CommandLineIcon)
     },
     {
         title: "The Ecosystem",
-        desc: "Forge, Vapor, Nova, Horizon, Pulse, Reverb. Real tools built by people who ship."
+        desc: "Forge, Vapor, Nova, Horizon, Pulse, Reverb. Real tools built by people who ship.",
+        icon: markRaw(WrenchScrewdriverIcon)
     },
     {
         title: "Documentation That Slaps",
-        desc: "Actually readable docs. Examples that work. Updated with every release."
+        desc: "Actually readable docs. Examples that work. Updated with every release.",
+        icon: markRaw(BookOpenIcon)
     },
     {
         title: "Community",
-        desc: "Laracasts, Laracon, countless packages. You're never stuck alone."
+        desc: "Laracasts, Laracon, countless packages. You're never stuck alone.",
+        icon: markRaw(UserGroupIcon)
     }
 ];
 
@@ -140,14 +155,14 @@ const testimonials = [
 ];
 
 const ecosystem = [
-    { name: "Forge", desc: "Server management" },
-    { name: "Vapor", desc: "Serverless deployment" },
-    { name: "Nova", desc: "Admin panels" },
-    { name: "Horizon", desc: "Queue monitoring" },
-    { name: "Pulse", desc: "App insights" },
-    { name: "Reverb", desc: "WebSockets" },
-    { name: "Sanctum", desc: "API auth" },
-    { name: "Breeze", desc: "Auth scaffolding" },
+    { name: "Forge", desc: "Server management", url: "https://forge.laravel.com" },
+    { name: "Vapor", desc: "Serverless deployment", url: "https://vapor.laravel.com" },
+    { name: "Nova", desc: "Admin panels", url: "https://nova.laravel.com" },
+    { name: "Horizon", desc: "Queue monitoring", url: "https://laravel.com/docs/horizon" },
+    { name: "Pulse", desc: "App insights", url: "https://laravel.com/docs/pulse" },
+    { name: "Reverb", desc: "WebSockets", url: "https://laravel.com/docs/reverb" },
+    { name: "Sanctum", desc: "API auth", url: "https://laravel.com/docs/sanctum" },
+    { name: "Breeze", desc: "Auth scaffolding", url: "https://laravel.com/docs/starter-kits" },
 ];
 
 const laravelStats = [
@@ -188,6 +203,8 @@ const copiedIndex = ref(null);
 const secondsWasted = ref(0);
 const hasPledged = ref(false);
 const showConfetti = ref(false);
+const scrollY = ref(0);
+const visibleSections = ref(new Set());
 
 const copyCode = async (code, index) => {
     await navigator.clipboard.writeText(code);
@@ -208,19 +225,44 @@ const pledge = () => {
     setTimeout(() => showConfetti.value = false, 3000);
 };
 
+const handleScroll = () => {
+    scrollY.value = window.scrollY;
+};
+
+let observer = null;
+
 onMounted(() => {
     setTimeout(() => loaded.value = true, 100);
 
-    // Start the timer
     setInterval(() => {
         secondsWasted.value++;
     }, 1000);
+
+    window.addEventListener('scroll', handleScroll);
+
+    // Intersection Observer for scroll reveals
+    observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.reveal-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+});
+
+onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll);
+    if (observer) observer.disconnect();
 });
 </script>
 
 <template>
     <div class="main-container">
-        <!-- Background layers -->
+        <!-- Background gradient -->
         <div class="bg-gradient"></div>
 
         <!-- Confetti -->
@@ -230,12 +272,19 @@ onMounted(() => {
 
         <!-- Timer bar -->
         <div class="timer-bar">
-            <span>Time spent reading instead of coding: <strong>{{ secondsWasted }}s</strong></span>
+            <div class="timer-inner">
+                <span class="timer-pulse"></span>
+                <span>Time wasted reading instead of coding: <strong>{{ secondsWasted }}s</strong></span>
+            </div>
         </div>
 
         <header class="hero" :class="{ loaded }">
             <div class="hero-content">
-                <span class="eyebrow">STOP OVERCOMPLICATING IT</span>
+                <div class="eyebrow-wrapper">
+                    <span class="eyebrow-line"></span>
+                    <span class="eyebrow">STOP OVERCOMPLICATING IT</span>
+                    <span class="eyebrow-line"></span>
+                </div>
 
                 <h1 class="main-title">
                     <span class="title-line">JUST USE</span>
@@ -245,18 +294,20 @@ onMounted(() => {
 
                 <p class="tagline">
                     You don't need 47 microservices, a custom framework, or that hip new thing on Hacker News.
-                    <br>You need to ship. Laravel ships.
+                    <span class="tagline-highlight">You need to ship. Laravel ships.</span>
                 </p>
 
                 <div class="cta-group">
                     <a href="https://laravel.com/docs" target="_blank" class="btn-primary">
-                        Read the Docs
+                        <span class="btn-bg"></span>
+                        <span class="btn-text">Read the Docs</span>
                         <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
                     </a>
                     <a href="https://github.com/laravel/laravel" target="_blank" class="btn-secondary">
-                        GitHub
+                        <span class="btn-border"></span>
+                        <span>GitHub</span>
                     </a>
                 </div>
             </div>
@@ -267,19 +318,21 @@ onMounted(() => {
             </div>
         </header>
 
-        <section class="stats-section">
+        <section class="stats-section reveal-on-scroll">
             <div class="stats-grid">
-                <div v-for="(stat, index) in laravelStats" :key="index" class="stat-item">
+                <div v-for="(stat, index) in laravelStats" :key="index" class="stat-item" :style="{ '--delay': `${index * 0.1}s` }">
                     <span class="stat-value">{{ stat.value }}</span>
                     <span class="stat-label">{{ stat.label }}</span>
+                    <div class="stat-glow"></div>
                 </div>
             </div>
         </section>
 
-        <section class="reasons-section">
+        <section class="reasons-section reveal-on-scroll">
             <div class="section-header">
-                <span class="section-number">01</span>
+                <div class="section-badge">01</div>
                 <h2 class="section-title">Six reasons you already know</h2>
+                <div class="section-line"></div>
             </div>
 
             <div class="reasons-grid">
@@ -290,20 +343,25 @@ onMounted(() => {
                     :class="{ hovered: hoveredIndex === index }"
                     @mouseenter="hoveredIndex = index"
                     @mouseleave="hoveredIndex = null"
-                    :style="{ '--delay': `${index * 0.1}s` }"
+                    :style="{ '--delay': `${index * 0.08}s` }"
                 >
+                    <div class="card-glow"></div>
                     <span class="reason-index">{{ String(index + 1).padStart(2, '0') }}</span>
-                    <h3 class="reason-title">{{ reason.title }}</h3>
+                    <div class="reason-header">
+                        <component :is="reason.icon" class="reason-icon" />
+                        <h3 class="reason-title">{{ reason.title }}</h3>
+                    </div>
                     <p class="reason-desc">{{ reason.desc }}</p>
                     <div class="card-accent"></div>
                 </article>
             </div>
         </section>
 
-        <section class="comparison-section">
+        <section class="comparison-section reveal-on-scroll">
             <div class="section-header">
-                <span class="section-number">02</span>
+                <div class="section-badge">02</div>
                 <h2 class="section-title">Before & After</h2>
+                <div class="section-line"></div>
             </div>
 
             <div class="comparison-grid">
@@ -314,6 +372,7 @@ onMounted(() => {
                             <div class="code-window-controls">
                                 <span></span><span></span><span></span>
                             </div>
+                            <span class="code-filename">auth-setup.js</span>
                         </div>
                         <pre class="language-js"><code class="language-js">{{ beforeCode }}</code></pre>
                     </div>
@@ -325,32 +384,36 @@ onMounted(() => {
                             <div class="code-window-controls">
                                 <span></span><span></span><span></span>
                             </div>
+                            <span class="code-filename">terminal</span>
                         </div>
                         <pre class="language-php"><code class="language-php">{{ afterCode }}</code></pre>
                     </div>
+                    <div class="after-glow"></div>
                 </div>
             </div>
         </section>
 
-        <section class="ecosystem-section">
+        <section class="ecosystem-section reveal-on-scroll">
             <div class="section-header">
-                <span class="section-number">03</span>
+                <div class="section-badge">03</div>
                 <h2 class="section-title">The Ecosystem</h2>
+                <div class="section-line"></div>
             </div>
             <p class="section-subtitle">First-party tools that just work. No glue code required.</p>
 
             <div class="ecosystem-grid">
-                <div v-for="(tool, index) in ecosystem" :key="index" class="ecosystem-item">
+                <a v-for="(tool, index) in ecosystem" :key="index" :href="tool.url" target="_blank" class="ecosystem-item" :style="{ '--delay': `${index * 0.05}s` }">
                     <span class="ecosystem-name">{{ tool.name }}</span>
                     <span class="ecosystem-desc">{{ tool.desc }}</span>
-                </div>
+                </a>
             </div>
         </section>
 
-        <section class="claude-section">
+        <section class="claude-section reveal-on-scroll">
             <div class="section-header">
-                <span class="section-number">04</span>
+                <div class="section-badge">04</div>
                 <h2 class="section-title">Laravel + Claude = Ship Faster</h2>
+                <div class="section-line"></div>
             </div>
             <div class="claude-content">
                 <p class="claude-text">
@@ -411,10 +474,11 @@ onMounted(() => {
             </div>
         </section>
 
-        <section class="code-section">
+        <section class="code-section reveal-on-scroll">
             <div class="section-header">
-                <span class="section-number">02</span>
+                <div class="section-badge">05</div>
                 <h2 class="section-title">Enterprise-Grade Architecture</h2>
+                <div class="section-line"></div>
             </div>
             <p class="section-subtitle">Everything you need to build scalable, maintainable applications. No extra packages required.</p>
 
@@ -423,6 +487,7 @@ onMounted(() => {
                     v-for="(example, index) in codeExamples"
                     :key="index"
                     class="code-card"
+                    :style="{ '--delay': `${index * 0.05}s` }"
                 >
                     <div class="code-card-header">
                         <h3 class="code-title">{{ example.title }}</h3>
@@ -454,6 +519,7 @@ onMounted(() => {
 
             <div class="laravel-cta">
                 <a href="https://laravel.com" target="_blank" class="laravel-link">
+                    <div class="laravel-link-glow"></div>
                     <img src="/laravel-logo.svg" alt="Laravel" class="laravel-logo" />
                     <span class="laravel-text">
                         <strong>Go to Laravel.com</strong>
@@ -466,25 +532,28 @@ onMounted(() => {
             </div>
         </section>
 
-        <section class="testimonials-section">
+        <section class="testimonials-section reveal-on-scroll">
             <div class="section-header">
-                <span class="section-number">05</span>
+                <div class="section-badge">06</div>
                 <h2 class="section-title">Success Stories*</h2>
+                <div class="section-line"></div>
             </div>
             <p class="section-subtitle">*Testimonials may be entirely fictional. Results are real.</p>
 
             <div class="testimonials-grid">
-                <div v-for="(testimonial, index) in testimonials" :key="index" class="testimonial-card">
-                    <p class="testimonial-quote">"{{ testimonial.quote }}"</p>
+                <div v-for="(testimonial, index) in testimonials" :key="index" class="testimonial-card" :style="{ '--delay': `${index * 0.1}s` }">
+                    <div class="quote-mark">"</div>
+                    <p class="testimonial-quote">{{ testimonial.quote }}</p>
                     <span class="testimonial-author">{{ testimonial.author }}</span>
                 </div>
             </div>
         </section>
 
-        <section class="objections-section">
+        <section class="objections-section reveal-on-scroll">
             <div class="section-header">
-                <span class="section-number">06</span>
+                <div class="section-badge">07</div>
                 <h2 class="section-title">But what about...</h2>
+                <div class="section-line"></div>
             </div>
 
             <div class="objections-list">
@@ -492,37 +561,46 @@ onMounted(() => {
                     v-for="(obj, index) in objections"
                     :key="index"
                     class="objection-item"
+                    :style="{ '--delay': `${index * 0.05}s` }"
                 >
                     <h3 class="objection-q">{{ obj.q }}</h3>
                     <p class="objection-a">{{ obj.a }}</p>
+                    <div class="objection-accent"></div>
                 </div>
             </div>
         </section>
 
-        <section class="pledge-section">
+        <section class="pledge-section reveal-on-scroll">
             <div class="pledge-content">
+                <div class="pledge-badge">THE PLEDGE</div>
                 <h2 class="pledge-title">Ready to stop overthinking?</h2>
                 <button
                     class="pledge-btn"
                     :class="{ pledged: hasPledged }"
                     @click="pledge"
                 >
-                    <span v-if="!hasPledged">I pledge to ship</span>
-                    <span v-else>You're going to ship!</span>
+                    <span class="pledge-btn-bg"></span>
+                    <span v-if="!hasPledged" class="pledge-btn-text">I pledge to ship</span>
+                    <span v-else class="pledge-btn-text">You're going to ship!</span>
                 </button>
                 <p class="pledge-note" v-if="hasPledged">Screenshot this. Hold yourself accountable.</p>
             </div>
         </section>
 
-        <section class="final-cta">
+        <section class="final-cta reveal-on-scroll">
             <div class="final-content">
                 <h2 class="final-title">
                     <span>Still reading?</span>
                     <span class="accent">Start building.</span>
                 </h2>
                 <div class="command-block">
+                    <div class="command-prompt">$</div>
                     <code>composer create-project laravel/laravel my-app</code>
                     <button class="copy-btn" @click="navigator.clipboard.writeText('composer create-project laravel/laravel my-app')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
                         Copy
                     </button>
                 </div>
@@ -536,8 +614,9 @@ onMounted(() => {
             </div>
         </section>
 
-        <section class="outro-section">
+        <section class="outro-section reveal-on-scroll">
             <div class="outro-content">
+                <div class="outro-badge">REAL TALK</div>
                 <h2 class="outro-title">Real talk for a second</h2>
                 <p class="outro-text">
                     The stack doesn't actually matter that much. What matters is that your codebase is
@@ -559,6 +638,7 @@ onMounted(() => {
             <div class="sponsor-content">
                 <span class="sponsor-label">Built by</span>
                 <a href="https://polyxmedia.com" target="_blank" class="sponsor-card">
+                    <div class="sponsor-card-glow"></div>
                     <div class="sponsor-logo-info">
                         <img src="/polyxlogo.png" alt="Polyx Media" class="sponsor-logo" />
                         <div class="sponsor-info">
@@ -578,6 +658,7 @@ onMounted(() => {
 
         <!-- Fixed Twitter Follow -->
         <a href="https://twitter.com/voidmode" target="_blank" class="twitter-follow">
+            <div class="twitter-glow"></div>
             <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
@@ -594,35 +675,114 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap');
 
 .main-container {
-    --bg-dark: #050505;
-    --bg-card: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-muted: #888888;
+    --bg-dark: #030303;
+    --bg-card: rgba(12, 12, 12, 0.8);
+    --bg-card-solid: #0a0a0a;
+    --text-primary: #f5f5f5;
+    --text-muted: #6b6b6b;
+    --text-dim: #444444;
     --accent: #FF2D20;
-    --accent-glow: rgba(255, 45, 32, 0.4);
-    --accent-secondary: #ff6b5b;
+    --accent-bright: #ff4538;
+    --accent-glow: rgba(255, 45, 32, 0.5);
+    --accent-soft: rgba(255, 45, 32, 0.15);
+    --accent-secondary: #ff7b6b;
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-accent: rgba(255, 45, 32, 0.3);
+    --glass-bg: rgba(15, 15, 15, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
 
     min-height: 100vh;
     background: var(--bg-dark);
     color: var(--text-primary);
-    font-family: 'Space Mono', monospace;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     position: relative;
     overflow-x: hidden;
+    line-height: 1.6;
 }
 
-/* Top gradient */
-.bg-gradient {
+/* Background wrapper */
+.bg-wrapper {
     position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.bg-gradient {
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 60vh;
-    background: linear-gradient(180deg, rgba(255, 45, 32, 0.08) 0%, transparent 100%);
-    pointer-events: none;
-    z-index: 0;
+    height: 100vh;
+    background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 45, 32, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 60%, rgba(255, 45, 32, 0.05) 0%, transparent 40%);
+}
+
+.bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    animation: orbFloat 20s ease-in-out infinite;
+}
+
+.orb-1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    top: -200px;
+    left: 20%;
+    animation-delay: 0s;
+}
+
+.orb-2 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255, 100, 80, 0.6) 0%, transparent 70%);
+    top: 40%;
+    right: -100px;
+    animation-delay: -7s;
+    animation-duration: 25s;
+}
+
+.orb-3 {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255, 45, 32, 0.4) 0%, transparent 70%);
+    bottom: 10%;
+    left: -50px;
+    animation-delay: -14s;
+    animation-duration: 18s;
+}
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -40px) scale(1.05); }
+    50% { transform: translate(-20px, 20px) scale(0.95); }
+    75% { transform: translate(40px, 30px) scale(1.02); }
+}
+
+.noise-overlay {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    mix-blend-mode: overlay;
+}
+
+.grid-overlay {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
 }
 
 /* Timer bar */
@@ -717,7 +877,7 @@ onMounted(() => {
 }
 
 .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -743,14 +903,16 @@ onMounted(() => {
 .eyebrow {
     display: inline-block;
     font-size: 0.75rem;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.2em;
     color: var(--accent);
     margin-bottom: 2rem;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1.25rem;
     border: 1px solid var(--accent);
+    border-radius: 6px;
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    font-weight: 600;
 }
 
 .loaded .eyebrow {
@@ -828,13 +990,16 @@ onMounted(() => {
     background: var(--accent);
     color: white;
     padding: 1rem 2rem;
-    font-family: 'Space Mono', monospace;
+    font-family: 'DM Sans', sans-serif;
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     transition: all 0.3s ease;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary:hover {
@@ -858,15 +1023,17 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     padding: 1rem 2rem;
-    font-family: 'Space Mono', monospace;
+    font-family: 'DM Sans', sans-serif;
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--text-primary);
     border: 1px solid var(--text-muted);
     transition: all 0.3s ease;
+    border-radius: 6px;
+    position: relative;
 }
 
 .btn-secondary:hover {
@@ -916,23 +1083,35 @@ onMounted(() => {
 
 .section-header {
     display: flex;
-    align-items: baseline;
-    gap: 2rem;
+    align-items: center;
+    gap: 1.5rem;
     margin-bottom: 4rem;
+    flex-wrap: wrap;
 }
 
-.section-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.5rem;
+.section-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
     color: var(--accent);
+    background: var(--accent-soft);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
 }
 
 .section-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    font-weight: 400;
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
     margin: 0;
-    text-transform: uppercase;
+}
+
+.section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border-subtle), transparent);
+    min-width: 50px;
 }
 
 .reasons-grid {
@@ -943,11 +1122,12 @@ onMounted(() => {
 
 .reason-card {
     background: var(--bg-card);
-    padding: 2.5rem;
+    padding: 2rem;
     position: relative;
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
 }
 
 .reason-card:hover {
@@ -956,10 +1136,26 @@ onMounted(() => {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 
+.reason-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.reason-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--accent);
+    stroke-width: 1.5;
+    flex-shrink: 0;
+}
+
 .reason-index {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3rem;
-    color: rgba(255, 255, 255, 0.05);
+    font-family: 'Syne', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.04);
     position: absolute;
     top: 1rem;
     right: 1.5rem;
@@ -971,10 +1167,10 @@ onMounted(() => {
 }
 
 .reason-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.75rem;
-    margin: 0 0 1rem;
-    text-transform: uppercase;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
 }
 
 .reason-desc {
@@ -1095,18 +1291,24 @@ onMounted(() => {
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 1.5rem;
     text-align: center;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
 }
 
 .ecosystem-item:hover {
     border-color: var(--accent);
+    transform: translateY(-2px);
 }
 
 .ecosystem-name {
     display: block;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.25rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
     margin-bottom: 0.25rem;
+    color: var(--text-primary);
 }
 
 .ecosystem-desc {
@@ -1157,6 +1359,7 @@ onMounted(() => {
     border: 1px solid rgba(255, 45, 32, 0.3);
     margin: 2rem 0;
     overflow: hidden;
+    border-radius: 12px;
 }
 
 .context-header {
@@ -1204,6 +1407,7 @@ onMounted(() => {
     background: #0a0a0a;
     padding: 1rem 1.5rem;
     margin: 1rem 0;
+    border-radius: 8px;
 }
 
 .context-example code {
@@ -1404,28 +1608,44 @@ onMounted(() => {
     border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem 1.5rem;
     font-size: 0.875rem;
+    border-radius: 10px;
+}
+
+.command-prompt {
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .command-block code {
     color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     background: transparent;
     border: 1px solid var(--text-muted);
     color: var(--text-muted);
     padding: 0.5rem 1rem;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     cursor: pointer;
     transition: all 0.3s ease;
+    border-radius: 6px;
+}
+
+.copy-btn svg {
+    width: 14px;
+    height: 14px;
 }
 
 .copy-btn:hover {
-    border-color: var(--text-primary);
-    color: var(--text-primary);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* Code Section */
@@ -1454,6 +1674,7 @@ onMounted(() => {
     border: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 12px;
 }
 
 .code-card:hover {
@@ -1485,6 +1706,8 @@ onMounted(() => {
     background: #1a1a1a;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
 }
 
 .code-window-header {
